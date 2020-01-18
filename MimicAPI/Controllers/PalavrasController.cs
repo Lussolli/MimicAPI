@@ -1,10 +1,6 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using MimicAPI.Database;
 using MimicAPI.Helpers;
 using MimicAPI.Models;
 using MimicAPI.Models.DTO;
@@ -94,6 +90,14 @@ namespace MimicAPI.Controllers
         [HttpPost]
         public ActionResult Cadastrar([FromBody]Palavra palavra)
         {
+            if (palavra == null)
+                return BadRequest();
+            
+            if (!ModelState.IsValid)
+                return UnprocessableEntity(ModelState);
+
+            palavra.Ativo = true;
+            palavra.Criado = DateTime.Now;
             _repository.Cadastrar(palavra);
             PalavraDTO palavraDTO = _mapper.Map<Palavra, PalavraDTO>(palavra);
             palavraDTO.Links.Add(
@@ -109,8 +113,17 @@ namespace MimicAPI.Controllers
 
             if (palavraBanco == null)
                 return NotFound();
+            
+            if (palavra == null)
+                return BadRequest();
+            
+            if (!ModelState.IsValid)
+                return UnprocessableEntity(ModelState);
 
             palavra.Id = id;
+            palavra.Ativo = palavraBanco.Ativo;
+            palavra.Criado = palavraBanco.Criado;
+            palavra.Atualizado = DateTime.Now;
             _repository.Atualizar(palavra);
             
             PalavraDTO palavraDTO = _mapper.Map<Palavra, PalavraDTO>(palavra);
