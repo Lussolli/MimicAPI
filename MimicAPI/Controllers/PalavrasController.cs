@@ -26,17 +26,56 @@ namespace MimicAPI.Controllers
             _mapper = mapper;
         }
 
-        [Route("")]
-        [HttpGet]
+        [HttpGet("", Name = "ObterTodas")]
         public ActionResult ObterTodas([FromQuery]PalavraUrlQuery query)
         {
             ListaPaginacao<Palavra> palavras = _repository.ObterPalavras(query);
-            if (query.NumeroPagina > palavras.Paginacao.TotalPaginas)
+            if (palavras.Resultados.Count == 0)
                 return NotFound();
-
-            Response.Headers.Add("X-Pagination", JsonConvert.SerializeObject(palavras.Paginacao));
             
-            return Ok(palavras.ToList());
+            ListaPaginacao<PalavraDTO> lista = CriarLinkListaPalavraDTO(query, palavras);
+            return Ok(lista);
+        }
+
+        private ListaPaginacao<PalavraDTO> CriarLinkListaPalavraDTO(PalavraUrlQuery query, ListaPaginacao<Palavra> palavras)
+        {
+            ListaPaginacao<PalavraDTO> lista = _mapper.Map<ListaPaginacao<Palavra>, ListaPaginacao<PalavraDTO>>(palavras);
+            foreach (var palavra in lista.Resultados)
+            {
+                palavra.Links = new List<LinkDTO>();
+                palavra.Links.Add(new LinkDTO("self", Url.Link("ObterPalavra", new { id = palavra.Id }), "GET"));
+            }
+
+            lista.Links.Add(new LinkDTO("self", Url.Link("ObterTodas", query), "GET"));
+
+            if (lista.Paginacao != null)
+            {
+                Response.Headers.Add("X-Pagination", JsonConvert.SerializeObject(lista.Paginacao));
+
+                if (query.NumeroPagina + 1 <= lista.Paginacao.TotalPaginas)
+                {
+                    var queryString = new PalavraUrlQuery()
+                    {
+                        NumeroPagina = query.NumeroPagina + 1,
+                        QuantidadeRegistros = query.QuantidadeRegistros,
+                        Data = query.Data
+                    };
+                    lista.Links.Add(new LinkDTO("next", Url.Link("ObterTodas", queryString), "GET"));
+                }
+
+                if (query.NumeroPagina - 1 > 0)
+                {
+                    var queryString = new PalavraUrlQuery()
+                    {
+                        NumeroPagina = query.NumeroPagina - 1,
+                        QuantidadeRegistros = query.QuantidadeRegistros,
+                        Data = query.Data
+                    };
+                    lista.Links.Add(new LinkDTO("prev", Url.Link("ObterTodas", queryString), "GET"));
+                }
+            }
+
+            return lista;
         }
 
         [HttpGet("{id}", Name = "ObterPalavra")]

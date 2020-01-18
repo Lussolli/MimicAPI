@@ -40,7 +40,7 @@ namespace MimicAPI.Repositories
                 lista.Paginacao = paginacao;
             }
 
-            lista.AddRange(itens.ToList());
+            lista.Resultados.AddRange(itens.ToList());
             return lista;
         }
 
