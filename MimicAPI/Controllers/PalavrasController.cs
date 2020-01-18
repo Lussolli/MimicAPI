@@ -41,10 +41,7 @@ namespace MimicAPI.Controllers
         {
             ListaPaginacao<PalavraDTO> lista = _mapper.Map<ListaPaginacao<Palavra>, ListaPaginacao<PalavraDTO>>(palavras);
             foreach (var palavra in lista.Resultados)
-            {
-                palavra.Links = new List<LinkDTO>();
                 palavra.Links.Add(new LinkDTO("self", Url.Link("ObterPalavra", new { id = palavra.Id }), "GET"));
-            }
 
             lista.Links.Add(new LinkDTO("self", Url.Link("ObterTodas", query), "GET"));
 
@@ -87,7 +84,6 @@ namespace MimicAPI.Controllers
                 return NotFound();
 
             PalavraDTO palavraDTO = _mapper.Map<Palavra, PalavraDTO>(palavra);
-            palavraDTO.Links = new List<LinkDTO>();
             palavraDTO.Links.Add(new LinkDTO("self", Url.Link("ObterPalavra", new { id = palavraDTO.Id }), "GET"));
             palavraDTO.Links.Add(new LinkDTO("update", Url.Link("AtualizarPalavra", new { id = palavraDTO.Id }), "PUT"));
             palavraDTO.Links.Add(new LinkDTO("delete", Url.Link("DeletarPalavra", new { id = palavraDTO.Id }), "DELETE"));
@@ -99,7 +95,11 @@ namespace MimicAPI.Controllers
         public ActionResult Cadastrar([FromBody]Palavra palavra)
         {
             _repository.Cadastrar(palavra);
-            return Created($"/api/palavras/{palavra.Id}", palavra);
+            PalavraDTO palavraDTO = _mapper.Map<Palavra, PalavraDTO>(palavra);
+            palavraDTO.Links.Add(
+                new LinkDTO("self", Url.Link("ObterPalavra", new { id = palavraDTO.Id }), "GET")
+            );
+            return Created($"/api/palavras/{palavra.Id}", palavraDTO);
         }
 
         [HttpPut("{id}", Name = "AtualizarPalavra")]
@@ -112,8 +112,13 @@ namespace MimicAPI.Controllers
 
             palavra.Id = id;
             _repository.Atualizar(palavra);
+            
+            PalavraDTO palavraDTO = _mapper.Map<Palavra, PalavraDTO>(palavra);
+            palavraDTO.Links.Add(
+                new LinkDTO("self", Url.Link("ObterPalavra", new { id = palavraDTO.Id }), "GET")
+            );
 
-            return Ok();
+            return Ok(palavraDTO);
         }
 
         [HttpDelete("{id}", Name = "DeletarPalavra")]
